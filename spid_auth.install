@@ -32,9 +32,6 @@ function spid_auth_uninstall() {
   variable_del('spid_auth_activate');
   variable_del('spid_auth_installdir');
   variable_del('spid_auth_logout_page');
-  variable_del('spid_auth_mailattr');
-  variable_del('spid_auth_unique_id');
-  variable_del('spid_auth_user_name');
   variable_del('spid_auth_authsource');
   variable_del('spid_auth_rolepopulation');
   variable_del('spid_auth_roleevaleverytime');

@@ -2,7 +2,6 @@
 
 /***********************************
   Nota di Bob: considerazioni generali:
-  - usare un diverso prefisso per le funzioni, tipo "simplespidphp" o qualcosa del genere
   - praticamente tutte le stringhe sono da tradurre in italiano
   - all'attivazione del modulo, sarebbe opportuno aggiungere ai profili utenti i campi descrittivi previsti da SPID (codice fiscale, data di nascita, etc...)
     cfr. https://api.drupal.org/api/drupal/modules!field!field.crud.inc/function/field_create_field/7
@@ -506,38 +505,6 @@ function spid_auth_settings() {
     '#title' => t('User Info and Syncing'),
     '#collapsible' => FALSE, 
   );
-
-  /***********************************
-    Nota di Bob: in SPID l'identificativo il nome completo dell'utente è composta dagli attributi "name" e "familyName", si può assumere come default e non farlo configurare qui
-  */
-  $form['spid_auth_grp_user']['spid_auth_user_name'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Which attribute from simpleSAMLphp should be used as user\'s name'),
-    '#default_value' => variable_get('spid_auth_user_name', 'eduPersonPrincipalName'),
-    '#description' => t('Example: <i>eduPersonPrincipalName</i> or <i>displayName</i><br />If the attribute is multivalued, the first value will be used.'),
-    '#required' => TRUE,
-  );
-  
-  /***********************************
-    Nota di Bob: in SPID l'identificativo univoco è "spidCode", si può assumere come default e non farlo configurare qui
-  */
-  $form['spid_auth_grp_user']['spid_auth_unique_id'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Which attribute from simpleSAMLphp should be used as unique identifier for the user'),
-    '#default_value' => variable_get('spid_auth_unique_id', 'eduPersonPrincipalName'),
-    '#description' => t('Example: <i>eduPersonPrincipalName</i> or <i>eduPersonTargetedID</i><br />If the attribute is multivalued, the first value will be used.'),
-    '#required' => TRUE,
-  );
-  
-  /***********************************
-    Nota di Bob: in SPID l'identificativo della mail è "email", si può assumere come default e non farlo configurare qui
-  */
-  $form['spid_auth_grp_user']['spid_auth_mailattr'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Which attribute from simpleSAMLphp should be used as user mail address'),
-    '#default_value' => variable_get('spid_auth_mailattr', 'mail'),
-    '#description' => t('Example: <i>mail</i><br />If the user attribute is multivalued, the first value will be used.'),
-  );
   $form['spid_auth_grp_user']['spid_auth_rolepopulation'] = array(
     '#type' => 'textarea',
     '#title' => t('Automatic role population from simpleSAMLphp attributes'),
@@ -570,16 +537,7 @@ function spid_auth_settings() {
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
-  
-  /***********************************
-    Nota di Bob: questa possibilità penso che debba essere tolta del tutto
-  */
-  $form['spid_auth_grp_auth']['spid_auth_allowsetdrupalpwd'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Allow SAML users to set Drupal passwords.'),
-    '#default_value' => variable_get('spid_auth_allowsetdrupalpwd', FALSE),
-    '#description' => t('Check this box if you want to let people set passwords for their local Drupal accounts. This will allow users to log in using either SAML or a local Drupal account. Disabling this removes the password change fields from the user profile form.<br/>NOTE: In order for them to login using their local Drupal password you must allow local logins with the settings below.'),
-  );
+
   /***********************************
     Nota di Bob: questa possibilità penso che debba essere tolta del tutto
   */
@@ -644,11 +602,7 @@ function spid_auth_form_alter(&$form, $form_state, $form_id) {
     unset($form['account']['current_pass']);
     unset($form['account']['current_pass_required_values']);
     $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
-
-    // If the user is a spid_auth user and is NOT allowed to set their Drupal password, remove the fields from the form.
-    if (!variable_get('spid_auth_allowsetdrupalpwd')) {
-      unset($form['account']['pass']);
-    }
+    unset($form['account']['pass']);
 
   }
 }
@@ -754,8 +708,8 @@ function _spid_auth_get_authname() {
   // Check if valid local session exists..
   if (isset($_simplesamlphp_auth_saml_attributes)) {
     _simplesaml_auth_debug(t('_spid_auth_get_authname: Valid local session exist'));
-    if (isset($_simplesamlphp_auth_saml_attributes[variable_get('spid_auth_unique_id', 'eduPersonPrincipalName')])) {
-      $authname = $_simplesamlphp_auth_saml_attributes[variable_get('spid_auth_unique_id', 'eduPersonPrincipalName')][0];
+    if (isset($_simplesamlphp_auth_saml_attributes['spidCode'])) {
+      $authname = $_simplesamlphp_auth_saml_attributes['spidCode'][0];
     }
     else {
       throw new Exception(t('error in spid_auth.module: no valid unique id attribute set'));
@@ -778,17 +732,19 @@ function _spid_auth_get_default_name($account) {
 
   // Check if valid local session exists..
   if ($_simplesamlphp_auth_as->isAuthenticated() ) {
-    $auth_user_name_attr = variable_get('spid_auth_user_name', 'eduPersonPrincipalName');
-    if ((!isset($_simplesamlphp_auth_saml_attributes[$auth_user_name_attr])) ||
-        (!isset($_simplesamlphp_auth_saml_attributes[$auth_user_name_attr][0])) ||
-        ($_simplesamlphp_auth_saml_attributes[$auth_user_name_attr][0] == '')) {
-      throw new Exception(t('There was no set attribute named "%auth_user_name_attr" returned for user %uid.',
+    if ((!isset($_simplesamlphp_auth_saml_attributes['name'])) ||
+        (!isset($_simplesamlphp_auth_saml_attributes['familyName'])) ||
+        (!isset($_simplesamlphp_auth_saml_attributes['name'][0])) ||
+        (!isset($_simplesamlphp_auth_saml_attributes['familyName'][0])) ||
+        ($_simplesamlphp_auth_saml_attributes['name'][0] == '') ||
+        ($_simplesamlphp_auth_saml_attributes['familyName'][0] == '')) {
+      throw new Exception(t('Non sono stati settati gli attributi "name" e "familyName" per l\'utente %uid.',
         array(
-          '%auth_user_name_attr' => $auth_user_name_attr,
           '%uid' => $account,
         )));
     }
-    $default_name = $_simplesamlphp_auth_saml_attributes[$auth_user_name_attr][0];
+
+    $default_name = $_simplesamlphp_auth_saml_attributes['name'][0] . ' ' . $_simplesamlphp_auth_saml_attributes['familyName'][0];
   }
   return $default_name;
 }
@@ -805,8 +761,8 @@ function _spid_auth_get_mail() {
   $mail_address = '';
   // Check if valid local session exists..
   if ($_simplesamlphp_auth_as->isAuthenticated()) {
-    if (isset($_simplesamlphp_auth_saml_attributes[variable_get('spid_auth_mailattr', 'mail')])) {
-      $mail_address = $_simplesamlphp_auth_saml_attributes[variable_get('spid_auth_mailattr', 'mail')][0];
+    if (isset($_simplesamlphp_auth_saml_attributes['email'])) {
+      $mail_address = $_simplesamlphp_auth_saml_attributes['email'][0];
     }
     else {
       throw new Exception(t('Error in spid_auth.module: No valid mail attribute set.'));
