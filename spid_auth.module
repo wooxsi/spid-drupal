@@ -365,7 +365,7 @@ function spid_auth_user_insert(&$edit, $account, $category = NULL) {
         return;
     }
 
-    if ($category = 'account') {
+    if ($category == 'account') {
         // If user registration has a valid session...
         if ($_simplesamlphp_auth_as->isAuthenticated()) {
             // Get name from default attributes.
@@ -666,7 +666,9 @@ function _spid_auth_isEnabled($bShowInactiveMsg = FALSE) {
 
 /**
  * Gets the authname attribute from the SAML assertion.
- *
+ * Auth_name can't be spidCode because a singol user can have tree SPID authentication 
+ * with tree different idp (so he has a single user but tree spidCode) 
+ *  
  * @return
  *   The authname attribute.
  */
@@ -678,12 +680,17 @@ function _spid_auth_get_authname() {
     // Check if valid local session exists..
     if (isset($_simplesamlphp_auth_saml_attributes)) {
         _simplesaml_auth_debug(t('_spid_auth_get_authname: Valid local session exist'));
-        if (isset($_simplesamlphp_auth_saml_attributes['spidCode'])) {
-            $authname = $_simplesamlphp_auth_saml_attributes['spidCode'][0];
+        if (isset($_simplesamlphp_auth_saml_attributes['fiscalNumber'])) {
+            $authname = $_simplesamlphp_auth_saml_attributes['fiscalNumber'][0];
+        } else if (isset($_simplesamlphp_auth_saml_attributes['ivaCode'])) {
+            $authname = $_simplesamlphp_auth_saml_attributes['ivaCode'][0];
         } else {
             throw new Exception(t('error in spid_auth.module: no valid unique id attribute set'));
         }
     }
+
+    $authname = substr($authname, 6);
+
     return $authname;
 }
 
@@ -820,7 +827,11 @@ function _spid_auth_generate_block_text() {
  *   An array containing role value and the attribute, or FALSE.
  */
 function _spid_auth_evaulaterolerule($roleruleevaluation, $attributes) {
-    // _simplesaml_auth_debug(t('Evaluate rule (key=%key,operator=%op,value=%val)', array('%key' => $roleruleevaluation[0], '%op' => $roleruleevaluation[1], '%val' => $roleruleevaluation[2])));
+    _simplesaml_auth_debug(t('Evaluate rule (key=%key,operator=%op,value=%val)', array(
+        '%key' => isset($roleruleevaluation[0]) ? $roleruleevaluation[0] : "not set",
+        '%op' => isset($roleruleevaluation[1]) ? $roleruleevaluation[1] : "not set",
+        '%val' => isset($roleruleevaluation[2]) ? $roleruleevaluation[2] : "not set"
+    )));
 
     if ($roleruleevaluation[0] == 'all') {
         return TRUE;
