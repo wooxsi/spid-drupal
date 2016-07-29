@@ -153,15 +153,17 @@ function spid_auth_loginpage() {
     }
 
 
-
     // If the user is anonymous, set the cookie (if we can) and require authentication.
     if ($user->uid == 0) {
 
         if ($returnto) {
             // Set the cookie so we can deliver the user to the place they started
             setrawcookie('spid_auth_returnto', $returnto, time() + 60 * 60);
+            //setrawcookie('SimpleSAMLSessionID', $returnto, time() + 60 * 60);
         }
 
+
+        // Check 
         if ((isset($_REQUEST['infocert_id']) && $_REQUEST['infocert_id'])) {
             $options['saml:idp'] = $_REQUEST['infocert_id'];
         } elseif ((isset($_REQUEST['poste_id']) && $_REQUEST['poste_id'])) {
@@ -174,6 +176,8 @@ function spid_auth_loginpage() {
         }
 
         // Require the user to be authenticated.
+
+        $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL1';
         $_simplesamlphp_auth_as->requireAuth($options);
 
         // If the user is authenticated, send them along.
@@ -425,10 +429,10 @@ function spid_auth_user_logout($account) {
         session_destroy();
 
         $gotourl = base_path();
+
         if (variable_get('spid_auth_logoutgotourl', '')) {
             $gotourl = variable_get('spid_auth_logoutgotourl', '');
         }
-
         $_simplesamlphp_auth_as->logout($gotourl);
     }
 }
@@ -1024,6 +1028,15 @@ function spid_auth_get_attributes($attribute = NULL) {
     return $result;
 }
 
+/**
+ * 
+ * Generate the button source code according to AGID specs,
+ * using AGID vendor folder.
+ * 
+ * 
+ * @return 
+ *   A string containing the source code that generate the Login Button 
+ */
 function _spid_auth_spidbutton() {
 
     $spid_ico_circle_svg = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.svg';
@@ -1045,7 +1058,7 @@ function _spid_auth_spidbutton() {
     $formaction = url('saml_login');
 
     $spid_bottone = <<<BOTTONE
-<form name="spid_idp_access" action="$formaction" method="post">
+    <form name="spid_idp_access" action="$formaction" method="post">
         <a href="#" class="italia-it-button italia-it-button-size-s button-spid" spid-idp-button="#spid-idp-button-small-post" aria-haspopup="true" aria-expanded="false">
             <span class="italia-it-button-icon"><img src="$spid_ico_circle_svg" onerror="this.src='$spid_ico_circle_png'; this.onerror=null;" alt="" /></span>
             <span class="italia-it-button-text">Entra con SPID</span>
