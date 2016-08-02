@@ -7,7 +7,7 @@ stylesheets[all][] = vendor/agid/css/spid-sp-access-button.min.css
 scripts[] = vendor/agid/js/spid-sp-access-button.min.js
 scripts[] = js/spid_bottone.js
 
-version = "7.x-alpha2"
+version = "7.x-beta1"
 core = "7.x"
 project = "spid_auth"
 datestamp = "1462725324"
