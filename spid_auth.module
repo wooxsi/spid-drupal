@@ -63,6 +63,15 @@ function spid_auth_menu() {
         'type' => MENU_CALLBACK,
     );
 
+    $items['saml_logout'] = array(
+        'title' => 'Logout to the site',
+        'description' => 'Provides a site logout page',
+        'page callback' => 'spid_auth_logoutpage',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+
+
     return $items;
 }
 
@@ -95,6 +104,25 @@ function spid_auth_permission() {
             'description' => t('Warning: Give to trusted roles only; this permission has security implications.'),
         ),
     );
+}
+
+/**
+ * Represents the Drupal page (saml_logout). 
+ */
+function spid_auth_logoutpage() {
+
+    $state = SimpleSAML_Auth_State::loadState((string) $_REQUEST['LogoutState'], 'MyLogoutState');
+
+    $ls = (isset($state['saml:sp:LogoutStatus'])?$state['saml:sp:LogoutStatus']:false); /* Only works for SAML SP */
+    if ($ls && $ls['Code'] === 'urn:oasis:names:tc:SAML:2.0:status:Success' && !isset($ls['SubCode'])) {
+        /* Successful logout. */
+        $msg = t("You have been logged out.");
+    } else {
+        /* Logout failed. Tell the user to close the browser. */
+        $msg = t("We were unable to log you out of all your sessions. To be completely sure that you are logged out, you need to close your web browser.");
+    }
+    drupal_set_message(check_plain($msg));
+    drupal_goto('<front>');
 }
 
 /**
@@ -134,7 +162,7 @@ function spid_auth_loginpage() {
     // There was a problem, we can't go on, but we don't want to tell the user any specifics either.
     if ($fail) {
         drupal_set_message(t('We\'re sorry. There was a problem. The issue has been logged for the administrator.'));
-        drupal_goto(base_path());
+        drupal_goto('<front>');
     }
     $returnto = NULL;
 
@@ -172,12 +200,14 @@ function spid_auth_loginpage() {
             $options['saml:idp'] = $_REQUEST['tim_id'];
         } else {
             drupal_set_message(t('We\'re sorry. There was a problem. The issue has been logged for the administrator.'));
-            drupal_goto(base_path());
+            drupal_goto('<front>');
         }
 
         // Require the user to be authenticated.
 
         $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL1';
+        $options['samlp:RequestedAuthnContext'] = array("Comparison" => "minimum");
+        $options['ErrorURL'] = base_path();
         $_simplesamlphp_auth_as->requireAuth($options);
 
         // If the user is authenticated, send them along.
@@ -433,7 +463,11 @@ function spid_auth_user_logout($account) {
         if (variable_get('spid_auth_logoutgotourl', '')) {
             $gotourl = variable_get('spid_auth_logoutgotourl', '');
         }
-        $_simplesamlphp_auth_as->logout($gotourl);
+
+        $_simplesamlphp_auth_as->logout(array(
+            'ReturnTo' => url('saml_logout'),
+            'ReturnStateParam' => 'LogoutState',
+            'ReturnStateStage' => 'MyLogoutState'));
     }
 }
 
