@@ -207,7 +207,12 @@ function spid_auth_loginpage() {
 
         $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL1';
         $options['samlp:RequestedAuthnContext'] = array("Comparison" => "minimum");
+        /* indicando la url di ritorno, funziona anche dietro reverse proxy */ 
+        /* se invece si lascia quella di default no */ 
+        
+        $options['ReturnTo'] = url('saml_login', array('absolute' => true)); 
         $options['ErrorURL'] = base_path();
+        
         $_simplesamlphp_auth_as->requireAuth($options);
 
         // If the user is authenticated, send them along.
@@ -1089,7 +1094,7 @@ function _spid_auth_spidbutton() {
     $poste_id = variable_get('spid_auth_authsource_poste');
     $tim_id = variable_get('spid_auth_authsource_tim');
 
-    $formaction = url('saml_login');
+    $formaction = url('saml_login', array('absolute' => true));
 
     $spid_bottone = <<<BOTTONE
     <form name="spid_idp_access" action="$formaction" method="post">
