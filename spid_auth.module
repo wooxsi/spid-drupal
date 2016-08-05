@@ -113,7 +113,7 @@ function spid_auth_logoutpage() {
 
     $state = SimpleSAML_Auth_State::loadState((string) $_REQUEST['LogoutState'], 'MyLogoutState');
 
-    $ls = (isset($state['saml:sp:LogoutStatus'])?$state['saml:sp:LogoutStatus']:false); /* Only works for SAML SP */
+    $ls = (isset($state['saml:sp:LogoutStatus']) ? $state['saml:sp:LogoutStatus'] : false); /* Only works for SAML SP */
     if ($ls && $ls['Code'] === 'urn:oasis:names:tc:SAML:2.0:status:Success' && !isset($ls['SubCode'])) {
         /* Successful logout. */
         $msg = t("You have been logged out.");
@@ -205,14 +205,14 @@ function spid_auth_loginpage() {
 
         // Require the user to be authenticated.
 
-        $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL1';
+        $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL' . variable_get('spid_auth_authlevel', 1);
         $options['samlp:RequestedAuthnContext'] = array("Comparison" => "minimum");
-        /* indicando la url di ritorno, funziona anche dietro reverse proxy */ 
-        /* se invece si lascia quella di default no */ 
-        
-        $options['ReturnTo'] = url('saml_login', array('absolute' => true)); 
+        /* indicando la url di ritorno, funziona anche dietro reverse proxy */
+        /* se invece si lascia quella di default no */
+
+        $options['ReturnTo'] = url('saml_login', array('absolute' => true));
         $options['ErrorURL'] = base_path();
-        
+
         $_simplesamlphp_auth_as->requireAuth($options);
 
         // If the user is authenticated, send them along.
@@ -239,7 +239,6 @@ function spid_auth_loginpage() {
             drupal_goto('user/' . $user->uid);
         }
     }
-
     return $output;
 }
 
@@ -523,10 +522,21 @@ function spid_auth_settings() {
     );
     $form['spid_auth_grp_setup']['spid_auth_authsource'] = array(
         '#type' => 'textfield',
-        '#title' => t('Autenticaton source for this SP (default: default-sp)'),
+        '#title' => t('Authenticaton source for this SP (default: default-sp)'),
         '#default_value' => variable_get('spid_auth_authsource', 'default-sp'),
         '#description' => t('The name of the source to use from /var/simplesamlphp/config/authsources.php'),
     );
+    $form['spid_auth_grp_setup']['spid_auth_authlevel'] = array(
+        '#type' => 'radios',
+        '#title' => t('Authenticaton level for this SP (default: default-sp)'),
+        '#default_value' => variable_get('spid_auth_authlevel', 1),
+        '#description' => t('Authentication level used'),
+        '#options' => array(
+            1 => 1,
+            2 => 2,
+            3 => 3)
+    );
+
 
     $form['spid_auth_grp_setup']['spid_auth_authsource_infocert'] = array(
         '#type' => 'textfield',
@@ -847,10 +857,9 @@ function _spid_auth_generate_block_text() {
     }
 
     // Check if valid local session exists..
-    if ($_simplesamlphp_auth_as->isAuthenticated()) {
-        $block_content .= '<p>Logged in as: ' . $user->name . '<br />' . l('Log Out', 'user/logout') . '</a></p>';
+    if ($_simplesamlphp_auth_as->isAuthenticated() or $user->uid != 0) {
+        $block_content .= '<p>' . t('Logged in as: ') . $user->name . '<br />' . l('Log Out', 'user/logout') . '</a></p>';
     } else {
-
         //$block_content .= '<p>' . l('Federated Log In', 'saml_login') . '</p>';
         $block_content .= '<p>' . _spid_auth_spidbutton() . '</p>';
     }
@@ -1078,6 +1087,8 @@ function spid_auth_get_attributes($attribute = NULL) {
  */
 function _spid_auth_spidbutton() {
 
+    // la base_url è necessaria in caso di reverse proxy 
+
     $spid_ico_circle_svg = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.svg';
     $spid_ico_circle_png = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.png';
 
@@ -1093,6 +1104,8 @@ function _spid_auth_spidbutton() {
     $infocert_id = variable_get('spid_auth_authsource_infocert');
     $poste_id = variable_get('spid_auth_authsource_poste');
     $tim_id = variable_get('spid_auth_authsource_tim');
+
+
 
     $formaction = url('saml_login', array('absolute' => true));
 
