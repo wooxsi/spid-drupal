@@ -71,6 +71,14 @@ function spid_auth_menu() {
         'type' => MENU_CALLBACK,
     );
 
+    $items['saml_error'] = array(
+        'title' => 'Authentication error page',
+        'description' => 'Provides a login error page',
+        'page callback' => 'spid_auth_errorpage',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+
 
     return $items;
 }
@@ -104,6 +112,14 @@ function spid_auth_permission() {
             'description' => t('Warning: Give to trusted roles only; this permission has security implications.'),
         ),
     );
+}
+
+/**
+ * Represents the Drupal page (saml_error). 
+ */
+function spid_auth_errorpage() {
+    drupal_set_message(check_plain(t("An authentication error has occurred")));
+    drupal_goto('<front>');
 }
 
 /**
@@ -204,14 +220,14 @@ function spid_auth_loginpage() {
         }
 
         // Require the user to be authenticated.
-
+        // Last char rapresent Level authentication 
         $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL' . variable_get('spid_auth_authlevel', 1);
         $options['samlp:RequestedAuthnContext'] = array("Comparison" => "minimum");
         /* indicando la url di ritorno, funziona anche dietro reverse proxy */
         /* se invece si lascia quella di default no */
 
         $options['ReturnTo'] = url('saml_login', array('absolute' => true));
-        $options['ErrorURL'] = base_path();
+        $options['ErrorURL'] = url('saml_error', array('absolute' => true));
 
         $_simplesamlphp_auth_as->requireAuth($options);
 
