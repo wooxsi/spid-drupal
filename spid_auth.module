@@ -79,7 +79,6 @@ function spid_auth_menu() {
         'type' => MENU_CALLBACK,
     );
 
-
     return $items;
 }
 
@@ -214,6 +213,8 @@ function spid_auth_loginpage() {
             $options['saml:idp'] = $_REQUEST['poste_id'];
         } elseif ((isset($_REQUEST['tim_id']) && $_REQUEST['tim_id'])) {
             $options['saml:idp'] = $_REQUEST['tim_id'];
+        } elseif ((isset($_REQUEST['sielte_id']) && $_REQUEST['sielte_id'])) {
+            $options['saml:idp'] = $_REQUEST['sielte_id'];
         } else {
             drupal_set_message(t('We\'re sorry. There was a problem. The issue has been logged for the administrator.'));
             drupal_goto('<front>');
@@ -222,7 +223,10 @@ function spid_auth_loginpage() {
         // Require the user to be authenticated.
         // Last char rapresent Level authentication 
         $options['saml:AuthnContextClassRef'] = 'urn:oasis:names:tc:SAML:2.0:ac:classes:SpidL' . variable_get('spid_auth_authlevel', 1);
-        $options['samlp:RequestedAuthnContext'] = array("Comparison" => "minimum");
+
+        $options['saml:AuthnContextComparison'] = "minimum";
+        $options['AuthnContextComparison'] = "minimum";
+
         /* indicando la url di ritorno, funziona anche dietro reverse proxy */
         /* se invece si lascia quella di default no */
 
@@ -571,6 +575,12 @@ function spid_auth_settings() {
         '#title' => t('Autenticaton id for Tim'),
         '#default_value' => variable_get('spid_auth_authsource_tim'),
         '#description' => t('The name of the tim_id from /var/simplesamlphp/config/authsources.php'),
+    );
+    $form['spid_auth_grp_setup']['spid_auth_authsource_sielte'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Autenticaton id for Sielte'),
+        '#default_value' => variable_get('spid_auth_authsource_sielte'),
+        '#description' => t('The name of the sielte_id from /var/simplesamlphp/config/authsources.php'),
     );
 
     $form['spid_auth_grp_setup']['spid_auth_forcehttps'] = array(
@@ -1105,23 +1115,26 @@ function _spid_auth_spidbutton() {
 
     // la base_url è necessaria in caso di reverse proxy 
 
-    $spid_ico_circle_svg = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.svg';
-    $spid_ico_circle_png = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.png';
+    $spid_ico_circle_svg = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.svg');
+    $spid_ico_circle_png = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-ico-circle-bb.png');
 
-    $spid_idp_infocert_svg = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-infocertid.svg';
-    $spid_idp_infocert_png = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-infocertid.png';
+    $spid_idp_infocert_svg = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-infocertid.svg');
+    $spid_idp_infocert_png = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-infocertid.png');
 
-    $spid_idp_timid_svg = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-timid.svg';
-    $spid_idp_timid_png = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-timid.png';
+    $spid_idp_timid_svg = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-timid.svg');
+    $spid_idp_timid_png = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-timid.png');
 
-    $spid_idp_posteid_svg = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-posteid.svg';
-    $spid_idp_posteid_png = drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-posteid.png';
+    $spid_idp_posteid_svg = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-posteid.svg');
+    $spid_idp_posteid_png = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-posteid.png');
+
+    $spid_idp_sielteid_svg = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-sielteid.svg');
+    $spid_idp_sielteid_png = url(drupal_get_path('module', "spid_auth") . '/vendor/agid/img/spid-idp-sielteid.png');
+
 
     $infocert_id = variable_get('spid_auth_authsource_infocert');
     $poste_id = variable_get('spid_auth_authsource_poste');
     $tim_id = variable_get('spid_auth_authsource_tim');
-
-
+    $sielte_id = variable_get('spid_auth_authsource_sielte');
 
     $formaction = url('saml_login', array('absolute' => true));
 
@@ -1142,11 +1155,14 @@ function _spid_auth_spidbutton() {
                 <li class="spid-idp-button-link">
                     <button class="idp-button-idp-logo" name="tim_id" type="submit" value="$tim_id"><span class="spid-sr-only">Tim ID</span><img class="spid-idp-button-logo" src="$spid_idp_timid_png" onerror="this.src='$spid_idp_timid_svg'; this.onerror=null;" alt="Tim ID" /></button>
                 </li>
+                <li class="spid-idp-button-link">
+                    <button class="idp-button-idp-logo" name="sielte_id" type="submit" value="$sielte_id"><span class="spid-sr-only">Sielte ID</span><img class="spid-idp-button-logo" src="$spid_idp_sielteid_svg" onerror="this.src='$spid_idp_sielteid_png'; this.onerror=null;" alt="Sielte ID" /></button>
+                </li>             
                 <li class="spid-idp-support-link">
                     <a href="http://www.spid.gov.it">Maggiori info</a>
                 </li>
                 <li class="spid-idp-support-link">
-                    <a href="http://www.spid.gov.it/#registrati">Non hai SPID?</a>
+                    <a href="http://www.spid.gov.it/richiedi-spid">Non hai SPID?</a>
                 </li>
             </ul>
         </div>
