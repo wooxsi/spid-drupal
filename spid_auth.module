@@ -556,6 +556,7 @@ function spid_auth_settings() {
             2 => 2,
             3 => 3)
     );
+	
 
 
     $form['spid_auth_grp_setup']['spid_auth_authsource_infocert'] = array(
@@ -590,6 +591,28 @@ function spid_auth_settings() {
         '#description' => t('Should be enabled on production sites.'),
     );
 
+	/***
+      Sezione per le configurazioni di visualizzazione
+     ***/
+	$form['spid_auth_grp_display'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Impostazioni grafiche'),
+        '#collapsible' => TRUE,
+    );
+	/***
+     Aggiunta possibilità di gestire la dimensione del bottone SPID
+     ***/
+	$form['spid_auth_grp_display']['spid_auth_login_size'] = array(
+        '#type' => 'radios',
+        '#title' => t('Dimensione bottone'),
+        '#default_value' => variable_get('spid_auth_login_size', 'm'),
+        '#description' => t('Dimensione del bottone SPID'),
+        '#options' => array(
+            's' => 'Piccolo',
+            'm' => 'Standard',
+            'l' => 'Grande')
+    );
+	
     $form['spid_auth_grp_user'] = array(
         '#type' => 'fieldset',
         '#title' => t('User Info and Syncing'),
@@ -887,7 +910,7 @@ function _spid_auth_generate_block_text() {
         $block_content .= '<p>' . t('Logged in as: ') . $user->name . '<br />' . l('Log Out', 'user/logout') . '</a></p>';
     } else {
         //$block_content .= '<p>' . l('Federated Log In', 'saml_login') . '</p>';
-        $block_content .= '<p>' . _spid_auth_spidbutton() . '</p>';
+        $block_content .= '' . _spid_auth_spidbutton() . '';
     }
 
     return $block_content;
@@ -1135,12 +1158,13 @@ function _spid_auth_spidbutton() {
     $poste_id = variable_get('spid_auth_authsource_poste');
     $tim_id = variable_get('spid_auth_authsource_tim');
     $sielte_id = variable_get('spid_auth_authsource_sielte');
-
+	
+	$dimensione = variable_get('spid_auth_login_size', 'm');
     $formaction = url('saml_login', array('absolute' => true));
 
     $spid_bottone = <<<BOTTONE
     <form name="spid_idp_access" action="$formaction" method="post">
-        <a href="#" class="italia-it-button italia-it-button-size-s button-spid" spid-idp-button="#spid-idp-button-small-post" aria-haspopup="true" aria-expanded="false">
+        <a href="#" class="italia-it-button italia-it-button-size-$dimensione button-spid" spid-idp-button="#spid-idp-button-small-post" aria-haspopup="true" aria-expanded="false">
             <span class="italia-it-button-icon"><img src="$spid_ico_circle_svg" onerror="this.src='$spid_ico_circle_png'; this.onerror=null;" alt="" /></span>
             <span class="italia-it-button-text">Entra con SPID</span>
         </a>
