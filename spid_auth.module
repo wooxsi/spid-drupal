@@ -556,7 +556,6 @@ function spid_auth_settings() {
             2 => 2,
             3 => 3)
     );
-	
 
 
     $form['spid_auth_grp_setup']['spid_auth_authsource_infocert'] = array(
